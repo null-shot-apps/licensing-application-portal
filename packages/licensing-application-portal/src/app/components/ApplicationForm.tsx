@@ -26,9 +26,9 @@ export default function ApplicationForm({ onSubmit, onCancel }: ApplicationFormP
   });
 
   const steps = [
-    { number: 1, name: 'Property Details', icon: '🏠' },
-    { number: 2, name: 'Document Upload', icon: '📄' },
-    { number: 3, name: 'Review & Submit', icon: '✓' },
+    { number: 1, name: 'Property details' },
+    { number: 2, name: 'Upload documents' },
+    { number: 3, name: 'Check your answers' },
   ];
 
   const handleNext = () => {
@@ -52,44 +52,20 @@ export default function ApplicationForm({ onSubmit, onCancel }: ApplicationFormP
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Progress Steps */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          {steps.map((step, index) => (
-            <div key={step.number} className="flex items-center flex-1">
-              <div className="flex flex-col items-center flex-1">
-                <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-semibold transition-colors ${
-                    currentStep >= step.number
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-200 text-slate-600'
-                  }`}
-                >
-                  {step.icon}
-                </div>
-                <span
-                  className={`mt-2 text-sm font-medium ${
-                    currentStep >= step.number ? 'text-blue-600' : 'text-slate-600'
-                  }`}
-                >
-                  {step.name}
-                </span>
-              </div>
-              {index < steps.length - 1 && (
-                <div
-                  className={`h-1 flex-1 mx-4 rounded transition-colors ${
-                    currentStep > step.number ? 'bg-blue-600' : 'bg-slate-200'
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+    <div>
+      <a href="#" onClick={(e) => { e.preventDefault(); onCancel(); }} className="govuk-back-link">
+        Back
+      </a>
+
+      <h1 className="govuk-heading-xl">Apply for a property licence</h1>
+
+      {/* Progress indicator */}
+      <p className="govuk-body" style={{ color: '#505a5f', marginBottom: '30px' }}>
+        Step {currentStep} of {steps.length}: {steps[currentStep - 1].name}
+      </p>
 
       {/* Form Content */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
+      <div>
         {currentStep === 1 && (
           <PropertyDetailsStep
             formData={formData}
@@ -117,4 +93,5 @@ export default function ApplicationForm({ onSubmit, onCancel }: ApplicationFormP
     </div>
   );
 }
+
 

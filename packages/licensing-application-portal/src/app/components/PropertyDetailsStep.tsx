@@ -29,13 +29,13 @@ export default function PropertyDetailsStep({
     const newErrors: Record<string, string> = {};
 
     if (!formData.propertyAddress.trim()) {
-      newErrors.propertyAddress = 'Property address is required';
+      newErrors.propertyAddress = 'Enter the property address';
     }
 
     if (!formData.postcode.trim()) {
-      newErrors.postcode = 'Postcode is required';
+      newErrors.postcode = 'Enter a postcode';
     } else if (!validatePostcode(formData.postcode)) {
-      newErrors.postcode = 'Please enter a valid UK postcode';
+      newErrors.postcode = 'Enter a postcode in the correct format';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -57,38 +57,38 @@ export default function PropertyDetailsStep({
     const newErrors: Record<string, string> = {};
 
     if (!formData.licenseType) {
-      newErrors.licenseType = 'Please select a license type';
+      newErrors.licenseType = 'Select a licence type';
     }
     if (!formData.propertyAddress.trim()) {
-      newErrors.propertyAddress = 'Property address is required';
+      newErrors.propertyAddress = 'Enter the property address';
     }
     if (!formData.postcode.trim()) {
-      newErrors.postcode = 'Postcode is required';
+      newErrors.postcode = 'Enter a postcode';
     } else if (!validatePostcode(formData.postcode)) {
-      newErrors.postcode = 'Please enter a valid UK postcode';
+      newErrors.postcode = 'Enter a postcode in the correct format';
     }
     if (!addressValidated) {
-      newErrors.addressValidation = 'Please validate the address before continuing';
+      newErrors.addressValidation = 'Validate the address before continuing';
     }
     if (!formData.propertyType) {
-      newErrors.propertyType = 'Please select a property type';
+      newErrors.propertyType = 'Select a property type';
     }
     if (!formData.numberOfBedrooms) {
-      newErrors.numberOfBedrooms = 'Number of bedrooms is required';
+      newErrors.numberOfBedrooms = 'Enter the number of bedrooms';
     }
     if (!formData.numberOfOccupants) {
-      newErrors.numberOfOccupants = 'Number of occupants is required';
+      newErrors.numberOfOccupants = 'Enter the number of occupants';
     }
     if (!formData.landlordName.trim()) {
-      newErrors.landlordName = 'Landlord name is required';
+      newErrors.landlordName = 'Enter your full name';
     }
     if (!formData.landlordEmail.trim()) {
-      newErrors.landlordEmail = 'Email is required';
+      newErrors.landlordEmail = 'Enter an email address';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.landlordEmail)) {
-      newErrors.landlordEmail = 'Please enter a valid email address';
+      newErrors.landlordEmail = 'Enter an email address in the correct format, like name@example.com';
     }
     if (!formData.landlordPhone.trim()) {
-      newErrors.landlordPhone = 'Phone number is required';
+      newErrors.landlordPhone = 'Enter a phone number';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -101,259 +101,254 @@ export default function PropertyDetailsStep({
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-6">Property Details</h2>
+      <h2 className="govuk-heading-l">Property details</h2>
 
-      <div className="space-y-6">
-        {/* License Type */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            License Type <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={formData.licenseType}
-            onChange={(e) => updateFormData({ licenseType: e.target.value })}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.licenseType ? 'border-red-500' : 'border-slate-300'
-            }`}
-          >
-            <option value="">Select license type</option>
-            <option value="Mandatory HMO License">Mandatory HMO License</option>
-            <option value="Selective License">Selective License</option>
-            <option value="Additional HMO License">Additional HMO License</option>
-          </select>
-          {errors.licenseType && (
-            <p className="mt-1 text-sm text-red-500">{errors.licenseType}</p>
-          )}
-        </div>
+      {/* License Type */}
+      <div className={`govuk-form-group ${errors.licenseType ? 'govuk-form-group--error' : ''}`}>
+        <label className="govuk-label govuk-label--s" htmlFor="licenseType">
+          Licence type
+        </label>
+        <span className="govuk-hint">
+          Select the type of licence you need for this property
+        </span>
+        {errors.licenseType && (
+          <p className="govuk-error-message">
+            <span className="govuk-visually-hidden">Error:</span> {errors.licenseType}
+          </p>
+        )}
+        <select
+          id="licenseType"
+          className={`govuk-select ${errors.licenseType ? 'govuk-select--error' : ''}`}
+          value={formData.licenseType}
+          onChange={(e) => updateFormData({ licenseType: e.target.value })}
+        >
+          <option value="">Select licence type</option>
+          <option value="Mandatory HMO License">Mandatory HMO licence</option>
+          <option value="Selective License">Selective licence</option>
+          <option value="Additional HMO License">Additional HMO licence</option>
+        </select>
+      </div>
 
-        {/* Property Address */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Property Address <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            value={formData.propertyAddress}
+      {/* Property Address */}
+      <div className={`govuk-form-group ${errors.propertyAddress ? 'govuk-form-group--error' : ''}`}>
+        <label className="govuk-label govuk-label--s" htmlFor="propertyAddress">
+          Property address
+        </label>
+        <span className="govuk-hint">
+          Enter the full address of the property
+        </span>
+        {errors.propertyAddress && (
+          <p className="govuk-error-message">
+            <span className="govuk-visually-hidden">Error:</span> {errors.propertyAddress}
+          </p>
+        )}
+        <textarea
+          id="propertyAddress"
+          className={`govuk-input ${errors.propertyAddress ? 'govuk-input--error' : ''}`}
+          rows={3}
+          value={formData.propertyAddress}
+          onChange={(e) => {
+            updateFormData({ propertyAddress: e.target.value });
+            setAddressValidated(false);
+          }}
+        />
+      </div>
+
+      {/* Postcode */}
+      <div className={`govuk-form-group ${errors.postcode || errors.addressValidation ? 'govuk-form-group--error' : ''}`}>
+        <label className="govuk-label govuk-label--s" htmlFor="postcode">
+          Postcode
+        </label>
+        <span className="govuk-hint">
+          For example, SW1A 1AA
+        </span>
+        {errors.postcode && (
+          <p className="govuk-error-message">
+            <span className="govuk-visually-hidden">Error:</span> {errors.postcode}
+          </p>
+        )}
+        {errors.addressValidation && (
+          <p className="govuk-error-message">
+            <span className="govuk-visually-hidden">Error:</span> {errors.addressValidation}
+          </p>
+        )}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'start' }}>
+          <input
+            id="postcode"
+            type="text"
+            className={`govuk-input ${errors.postcode ? 'govuk-input--error' : ''}`}
+            style={{ width: '10em' }}
+            value={formData.postcode}
             onChange={(e) => {
-              updateFormData({ propertyAddress: e.target.value });
+              updateFormData({ postcode: e.target.value.toUpperCase() });
               setAddressValidated(false);
             }}
-            rows={3}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.propertyAddress ? 'border-red-500' : 'border-slate-300'
-            }`}
-            placeholder="Enter full property address"
           />
-          {errors.propertyAddress && (
-            <p className="mt-1 text-sm text-red-500">{errors.propertyAddress}</p>
-          )}
-        </div>
-
-        {/* Postcode */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Postcode <span className="text-red-500">*</span>
-          </label>
-          <div className="flex gap-3">
-            <input
-              type="text"
-              value={formData.postcode}
-              onChange={(e) => {
-                updateFormData({ postcode: e.target.value.toUpperCase() });
-                setAddressValidated(false);
-              }}
-              className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.postcode ? 'border-red-500' : 'border-slate-300'
-              }`}
-              placeholder="e.g., SW1A 1AA"
-            />
-            <button
-              type="button"
-              onClick={handleValidateAddress}
-              disabled={isValidatingAddress}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isValidatingAddress ? (
-                <>
-                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Validating...
-                </>
-              ) : addressValidated ? (
-                <>
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Validated
-                </>
-              ) : (
-                'Validate Address'
-              )}
-            </button>
-          </div>
-          {errors.postcode && (
-            <p className="mt-1 text-sm text-red-500">{errors.postcode}</p>
-          )}
-          {errors.addressValidation && (
-            <p className="mt-1 text-sm text-red-500">{errors.addressValidation}</p>
-          )}
-          {addressValidated && (
-            <p className="mt-1 text-sm text-green-600 flex items-center gap-1">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Address validated successfully
-            </p>
-          )}
-        </div>
-
-        {/* Property Type */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Property Type <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={formData.propertyType}
-            onChange={(e) => updateFormData({ propertyType: e.target.value })}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.propertyType ? 'border-red-500' : 'border-slate-300'
-            }`}
+          <button
+            type="button"
+            onClick={handleValidateAddress}
+            disabled={isValidatingAddress}
+            className="govuk-button govuk-button--secondary"
+            style={{ marginBottom: 0 }}
           >
-            <option value="">Select property type</option>
-            <option value="House">House</option>
-            <option value="Flat">Flat</option>
-            <option value="Maisonette">Maisonette</option>
-            <option value="Bungalow">Bungalow</option>
-            <option value="HMO">HMO (House in Multiple Occupation)</option>
-          </select>
-          {errors.propertyType && (
-            <p className="mt-1 text-sm text-red-500">{errors.propertyType}</p>
-          )}
+            {isValidatingAddress ? 'Validating...' : addressValidated ? '✓ Validated' : 'Validate address'}
+          </button>
         </div>
+        {addressValidated && (
+          <p style={{ color: '#00703c', fontWeight: 700, marginTop: '10px' }}>
+            ✓ Address validated successfully
+          </p>
+        )}
+      </div>
 
-        {/* Number of Bedrooms */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Number of Bedrooms <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="number"
-            min="1"
-            value={formData.numberOfBedrooms}
-            onChange={(e) => updateFormData({ numberOfBedrooms: e.target.value })}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.numberOfBedrooms ? 'border-red-500' : 'border-slate-300'
-            }`}
-            placeholder="e.g., 3"
-          />
-          {errors.numberOfBedrooms && (
-            <p className="mt-1 text-sm text-red-500">{errors.numberOfBedrooms}</p>
-          )}
-        </div>
+      {/* Property Type */}
+      <div className={`govuk-form-group ${errors.propertyType ? 'govuk-form-group--error' : ''}`}>
+        <label className="govuk-label govuk-label--s" htmlFor="propertyType">
+          Property type
+        </label>
+        {errors.propertyType && (
+          <p className="govuk-error-message">
+            <span className="govuk-visually-hidden">Error:</span> {errors.propertyType}
+          </p>
+        )}
+        <select
+          id="propertyType"
+          className={`govuk-select ${errors.propertyType ? 'govuk-select--error' : ''}`}
+          value={formData.propertyType}
+          onChange={(e) => updateFormData({ propertyType: e.target.value })}
+        >
+          <option value="">Select property type</option>
+          <option value="House">House</option>
+          <option value="Flat">Flat</option>
+          <option value="Maisonette">Maisonette</option>
+          <option value="Bungalow">Bungalow</option>
+          <option value="HMO">HMO (House in Multiple Occupation)</option>
+        </select>
+      </div>
 
-        {/* Number of Occupants */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Number of Occupants <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="number"
-            min="1"
-            value={formData.numberOfOccupants}
-            onChange={(e) => updateFormData({ numberOfOccupants: e.target.value })}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.numberOfOccupants ? 'border-red-500' : 'border-slate-300'
-            }`}
-            placeholder="e.g., 4"
-          />
-          {errors.numberOfOccupants && (
-            <p className="mt-1 text-sm text-red-500">{errors.numberOfOccupants}</p>
-          )}
-        </div>
+      {/* Number of Bedrooms */}
+      <div className={`govuk-form-group ${errors.numberOfBedrooms ? 'govuk-form-group--error' : ''}`}>
+        <label className="govuk-label govuk-label--s" htmlFor="numberOfBedrooms">
+          Number of bedrooms
+        </label>
+        {errors.numberOfBedrooms && (
+          <p className="govuk-error-message">
+            <span className="govuk-visually-hidden">Error:</span> {errors.numberOfBedrooms}
+          </p>
+        )}
+        <input
+          id="numberOfBedrooms"
+          type="number"
+          min="1"
+          className={`govuk-input ${errors.numberOfBedrooms ? 'govuk-input--error' : ''}`}
+          style={{ width: '5em' }}
+          value={formData.numberOfBedrooms}
+          onChange={(e) => updateFormData({ numberOfBedrooms: e.target.value })}
+        />
+      </div>
 
-        {/* Landlord Details Section */}
-        <div className="pt-6 border-t border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Landlord Details</h3>
+      {/* Number of Occupants */}
+      <div className={`govuk-form-group ${errors.numberOfOccupants ? 'govuk-form-group--error' : ''}`}>
+        <label className="govuk-label govuk-label--s" htmlFor="numberOfOccupants">
+          Number of occupants
+        </label>
+        <span className="govuk-hint">
+          Maximum number of people who will live in the property
+        </span>
+        {errors.numberOfOccupants && (
+          <p className="govuk-error-message">
+            <span className="govuk-visually-hidden">Error:</span> {errors.numberOfOccupants}
+          </p>
+        )}
+        <input
+          id="numberOfOccupants"
+          type="number"
+          min="1"
+          className={`govuk-input ${errors.numberOfOccupants ? 'govuk-input--error' : ''}`}
+          style={{ width: '5em' }}
+          value={formData.numberOfOccupants}
+          onChange={(e) => updateFormData({ numberOfOccupants: e.target.value })}
+        />
+      </div>
 
-          <div className="space-y-6">
-            {/* Landlord Name */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Full Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.landlordName}
-                onChange={(e) => updateFormData({ landlordName: e.target.value })}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.landlordName ? 'border-red-500' : 'border-slate-300'
-                }`}
-                placeholder="Enter your full name"
-              />
-              {errors.landlordName && (
-                <p className="mt-1 text-sm text-red-500">{errors.landlordName}</p>
-              )}
-            </div>
+      {/* Landlord Details Section */}
+      <h2 className="govuk-heading-m" style={{ marginTop: '40px' }}>Your details</h2>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Email Address <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                value={formData.landlordEmail}
-                onChange={(e) => updateFormData({ landlordEmail: e.target.value })}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.landlordEmail ? 'border-red-500' : 'border-slate-300'
-                }`}
-                placeholder="your.email@example.com"
-              />
-              {errors.landlordEmail && (
-                <p className="mt-1 text-sm text-red-500">{errors.landlordEmail}</p>
-              )}
-            </div>
+      {/* Landlord Name */}
+      <div className={`govuk-form-group ${errors.landlordName ? 'govuk-form-group--error' : ''}`}>
+        <label className="govuk-label govuk-label--s" htmlFor="landlordName">
+          Full name
+        </label>
+        {errors.landlordName && (
+          <p className="govuk-error-message">
+            <span className="govuk-visually-hidden">Error:</span> {errors.landlordName}
+          </p>
+        )}
+        <input
+          id="landlordName"
+          type="text"
+          className={`govuk-input ${errors.landlordName ? 'govuk-input--error' : ''}`}
+          value={formData.landlordName}
+          onChange={(e) => updateFormData({ landlordName: e.target.value })}
+        />
+      </div>
 
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Phone Number <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                value={formData.landlordPhone}
-                onChange={(e) => updateFormData({ landlordPhone: e.target.value })}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.landlordPhone ? 'border-red-500' : 'border-slate-300'
-                }`}
-                placeholder="e.g., 07123 456789"
-              />
-              {errors.landlordPhone && (
-                <p className="mt-1 text-sm text-red-500">{errors.landlordPhone}</p>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Email */}
+      <div className={`govuk-form-group ${errors.landlordEmail ? 'govuk-form-group--error' : ''}`}>
+        <label className="govuk-label govuk-label--s" htmlFor="landlordEmail">
+          Email address
+        </label>
+        <span className="govuk-hint">
+          We'll use this to send you updates about your application
+        </span>
+        {errors.landlordEmail && (
+          <p className="govuk-error-message">
+            <span className="govuk-visually-hidden">Error:</span> {errors.landlordEmail}
+          </p>
+        )}
+        <input
+          id="landlordEmail"
+          type="email"
+          className={`govuk-input ${errors.landlordEmail ? 'govuk-input--error' : ''}`}
+          value={formData.landlordEmail}
+          onChange={(e) => updateFormData({ landlordEmail: e.target.value })}
+          autoComplete="email"
+          spellCheck={false}
+        />
+      </div>
+
+      {/* Phone */}
+      <div className={`govuk-form-group ${errors.landlordPhone ? 'govuk-form-group--error' : ''}`}>
+        <label className="govuk-label govuk-label--s" htmlFor="landlordPhone">
+          Phone number
+        </label>
+        <span className="govuk-hint">
+          For UK numbers, for example 07700 900 982 or 01632 960 001
+        </span>
+        {errors.landlordPhone && (
+          <p className="govuk-error-message">
+            <span className="govuk-visually-hidden">Error:</span> {errors.landlordPhone}
+          </p>
+        )}
+        <input
+          id="landlordPhone"
+          type="tel"
+          className={`govuk-input ${errors.landlordPhone ? 'govuk-input--error' : ''}`}
+          style={{ width: '20em' }}
+          value={formData.landlordPhone}
+          onChange={(e) => updateFormData({ landlordPhone: e.target.value })}
+          autoComplete="tel"
+        />
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-between mt-8 pt-6 border-t border-slate-200">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-6 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleNext}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          Next: Upload Documents
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={handleNext}
+        className="govuk-button"
+      >
+        Continue
+      </button>
     </div>
   );
 }
