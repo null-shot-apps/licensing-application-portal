@@ -19,10 +19,8 @@
   }
 }
 
-/* Non-scroll and full-height baseline */
 html, body {
   height: 100%;
-  overflow: hidden;
 }
 
 body {
@@ -147,3 +145,4 @@ body {
 .animate-bounce-horizontal {
   animation: bounce-horizontal 1.5s ease-in-out infinite;
 }
+
