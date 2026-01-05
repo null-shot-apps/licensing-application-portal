@@ -1,272 +1,460 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+
+interface DocumentRequirement {
+  id: string;
+  name: string;
+  description: string;
+  acceptedFormats: string[];
+  maxSize: number; // in MB
+  validationRules: {
+    mustContainText?: string[];
+    fileNamePattern?: RegExp;
+    minPages?: number;
+    maxPages?: number;
+  };
+  exampleCharacteristics: {
+    expectedKeywords: string[];
+    documentStructure: string[];
+  };
+}
+
+interface UploadedDocument {
+  file: File;
+  status: 'uploading' | 'validating' | 'valid' | 'invalid';
+  validationMessage?: string;
+  validationScore?: number;
+}
+
+const REQUIRED_DOCUMENTS: DocumentRequirement[] = [
+  {
+    id: 'proof-of-ownership',
+    name: 'Proof of ownership',
+    description: 'Land Registry document, title deeds, or mortgage statement showing you own the property',
+    acceptedFormats: ['.pdf', '.jpg', '.jpeg', '.png'],
+    maxSize: 10,
+    validationRules: {
+      mustContainText: ['land registry', 'title', 'proprietor', 'property'],
+      minPages: 1,
+      maxPages: 20
+    },
+    exampleCharacteristics: {
+      expectedKeywords: ['land registry', 'title number', 'proprietor', 'registered', 'freehold', 'leasehold'],
+      documentStructure: ['Property address', 'Owner name', 'Title number', 'Registration date']
+    }
+  },
+  {
+    id: 'gas-safety-certificate',
+    name: 'Gas Safety Certificate',
+    description: 'Valid Gas Safety Certificate (CP12) issued within the last 12 months by a Gas Safe registered engineer',
+    acceptedFormats: ['.pdf', '.jpg', '.jpeg', '.png'],
+    maxSize: 5,
+    validationRules: {
+      mustContainText: ['gas safe', 'cp12', 'certificate', 'inspection'],
+      minPages: 1,
+      maxPages: 10
+    },
+    exampleCharacteristics: {
+      expectedKeywords: ['gas safe', 'cp12', 'landlord', 'gas safety record', 'engineer', 'inspection date', 'appliances'],
+      documentStructure: ['Gas Safe Register number', 'Engineer name', 'Inspection date', 'Property address', 'Appliances checked']
+    }
+  },
+  {
+    id: 'epc-certificate',
+    name: 'Energy Performance Certificate (EPC)',
+    description: 'Valid EPC with a rating of E or above',
+    acceptedFormats: ['.pdf', '.jpg', '.jpeg', '.png'],
+    maxSize: 5,
+    validationRules: {
+      mustContainText: ['energy performance', 'epc', 'rating', 'certificate'],
+      minPages: 1,
+      maxPages: 5
+    },
+    exampleCharacteristics: {
+      expectedKeywords: ['energy performance certificate', 'epc', 'energy rating', 'current rating', 'potential rating', 'valid until'],
+      documentStructure: ['Property address', 'Energy rating (A-G)', 'Valid until date', 'Certificate number', 'Assessor details']
+    }
+  },
+  {
+    id: 'electrical-safety-certificate',
+    name: 'Electrical Installation Condition Report (EICR)',
+    description: 'Valid EICR issued within the last 5 years showing satisfactory condition',
+    acceptedFormats: ['.pdf', '.jpg', '.jpeg', '.png'],
+    maxSize: 10,
+    validationRules: {
+      mustContainText: ['electrical', 'eicr', 'inspection', 'condition report'],
+      minPages: 1,
+      maxPages: 30
+    },
+    exampleCharacteristics: {
+      expectedKeywords: ['eicr', 'electrical installation', 'condition report', 'inspection', 'satisfactory', 'test date', 'next inspection'],
+      documentStructure: ['Property address', 'Inspection date', 'Next inspection due', 'Overall assessment', 'Electrician details']
+    }
+  },
+  {
+    id: 'floor-plan',
+    name: 'Floor plan',
+    description: 'Detailed floor plan showing room layouts, dimensions, and fire escape routes',
+    acceptedFormats: ['.pdf', '.jpg', '.jpeg', '.png'],
+    maxSize: 10,
+    validationRules: {
+      fileNamePattern: /floor.*plan|plan|layout/i,
+      minPages: 1,
+      maxPages: 10
+    },
+    exampleCharacteristics: {
+      expectedKeywords: ['floor plan', 'layout', 'dimensions', 'room', 'scale', 'exit', 'escape route'],
+      documentStructure: ['Room labels', 'Dimensions', 'Doors and windows', 'Escape routes', 'Scale indicator']
+    }
+  },
+  {
+    id: 'proof-of-address',
+    name: 'Proof of address',
+    description: 'Recent utility bill, council tax statement, or bank statement (within last 3 months)',
+    acceptedFormats: ['.pdf', '.jpg', '.jpeg', '.png'],
+    maxSize: 5,
+    validationRules: {
+      mustContainText: ['address', 'date'],
+      minPages: 1,
+      maxPages: 5
+    },
+    exampleCharacteristics: {
+      expectedKeywords: ['address', 'date', 'account', 'statement', 'bill', 'council tax', 'utility'],
+      documentStructure: ['Your name', 'Property address', 'Issue date', 'Account details']
+    }
+  }
+];
 
 interface DocumentUploadStepProps {
-  formData: any;
-  updateFormData: (data: any) => void;
+  data: any;
+  onUpdate: (data: any) => void;
   onNext: () => void;
   onBack: () => void;
 }
 
-interface UploadedDocument {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  validated: boolean;
-  validationMessage?: string;
-}
+export default function DocumentUploadStep({ data, onUpdate, onNext, onBack }: DocumentUploadStepProps) {
+  const [documents, setDocuments] = useState<Record<string, UploadedDocument>>(data.documents || {});
+  const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
 
-export default function DocumentUploadStep({
-  formData,
-  updateFormData,
-  onNext,
-  onBack,
-}: DocumentUploadStepProps) {
-  const [documents, setDocuments] = useState<UploadedDocument[]>(formData.documents || []);
-  const [isValidating, setIsValidating] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const validateDocument = async (docId: string, file: File): Promise<{ valid: boolean; message: string; score: number }> => {
+    const requirement = REQUIRED_DOCUMENTS.find(d => d.id === docId);
+    if (!requirement) return { valid: false, message: 'Unknown document type', score: 0 };
 
-  const requiredDocuments = [
-    'Gas Safety Certificate',
-    'Electrical Installation Condition Report (EICR)',
-    'Energy Performance Certificate (EPC)',
-    'Proof of ownership or right to grant a tenancy',
-  ];
+    // Simulate validation delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-  const validateDocument = async (file: File): Promise<{ valid: boolean; message?: string }> => {
-    // Simulate document validation
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-        const maxSize = 10 * 1024 * 1024; // 10MB
+    let score = 0;
+    const issues: string[] = [];
 
-        if (!validTypes.includes(file.type)) {
-          resolve({
-            valid: false,
-            message: 'The selected file must be a PDF, JPG or PNG',
-          });
-          return;
+    // Check file format
+    const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!requirement.acceptedFormats.includes(fileExt)) {
+      issues.push(`Invalid format. Accepted: ${requirement.acceptedFormats.join(', ')}`);
+    } else {
+      score += 20;
+    }
+
+    // Check file size
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > requirement.maxSize) {
+      issues.push(`File too large. Maximum: ${requirement.maxSize}MB`);
+    } else {
+      score += 20;
+    }
+
+    // Check file name patterns
+    if (requirement.validationRules.fileNamePattern) {
+      if (requirement.validationRules.fileNamePattern.test(file.name)) {
+        score += 20;
+      } else {
+        issues.push('File name does not match expected pattern');
+      }
+    } else {
+      score += 20;
+    }
+
+    // Simulate content validation (in real app, would use OCR/PDF parsing)
+    // For demo, we'll do basic checks based on file name and type
+    const fileName = file.name.toLowerCase();
+    const keywords = requirement.exampleCharacteristics.expectedKeywords;
+    
+    let keywordMatches = 0;
+    keywords.forEach(keyword => {
+      if (fileName.includes(keyword.toLowerCase().replace(/\s+/g, ''))) {
+        keywordMatches++;
+      }
+    });
+
+    if (keywordMatches > 0) {
+      score += 20;
+    } else {
+      issues.push('Document may not contain expected information');
+    }
+
+    // Additional validation based on document type
+    if (docId === 'gas-safety-certificate' && !fileName.includes('gas') && !fileName.includes('cp12')) {
+      issues.push('This does not appear to be a Gas Safety Certificate');
+      score -= 20;
+    }
+
+    if (docId === 'epc-certificate' && !fileName.includes('epc') && !fileName.includes('energy')) {
+      issues.push('This does not appear to be an EPC');
+      score -= 20;
+    }
+
+    if (docId === 'electrical-safety-certificate' && !fileName.includes('eicr') && !fileName.includes('electrical')) {
+      issues.push('This does not appear to be an EICR');
+      score -= 20;
+    }
+
+    // Final scoring
+    score = Math.max(0, Math.min(100, score + 20)); // Base score + checks
+
+    const valid = score >= 60 && issues.length === 0;
+
+    return {
+      valid,
+      score,
+      message: valid 
+        ? `Document validated successfully (${score}% match)` 
+        : `Validation issues: ${issues.join('; ')}`
+    };
+  };
+
+  const handleFileUpload = async (docId: string, file: File) => {
+    // Set uploading status
+    setDocuments(prev => ({
+      ...prev,
+      [docId]: {
+        file,
+        status: 'uploading',
+      }
+    }));
+
+    // Simulate upload
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Set validating status
+    setDocuments(prev => ({
+      ...prev,
+      [docId]: {
+        ...prev[docId],
+        status: 'validating',
+      }
+    }));
+
+    // Validate document
+    const validation = await validateDocument(docId, file);
+
+    // Update with validation results
+    setDocuments(prev => {
+      const updated = {
+        ...prev,
+        [docId]: {
+          file,
+          status: validation.valid ? 'valid' : 'invalid',
+          validationMessage: validation.message,
+          validationScore: validation.score,
         }
-
-        if (file.size > maxSize) {
-          resolve({
-            valid: false,
-            message: 'The selected file must be smaller than 10MB',
-          });
-          return;
-        }
-
-        // Simulate successful validation
-        resolve({
-          valid: true,
-          message: 'File uploaded successfully',
-        });
-      }, 1500);
+      };
+      onUpdate({ documents: updated });
+      return updated;
     });
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    setIsValidating(true);
-    const newDocuments: UploadedDocument[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const validation = await validateDocument(file);
-
-      const doc: UploadedDocument = {
-        id: Date.now().toString() + i,
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        validated: validation.valid,
-        validationMessage: validation.message,
-      };
-
-      newDocuments.push(doc);
-    }
-
-    const updatedDocuments = [...documents, ...newDocuments];
-    setDocuments(updatedDocuments);
-    updateFormData({ documents: updatedDocuments });
-    setIsValidating(false);
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const handleRemoveDocument = (docId: string) => {
+    setDocuments(prev => {
+      const updated = { ...prev };
+      delete updated[docId];
+      onUpdate({ documents: updated });
+      return updated;
+    });
   };
 
-  const handleRemoveDocument = (id: string) => {
-    const updatedDocuments = documents.filter((doc) => doc.id !== id);
-    setDocuments(updatedDocuments);
-    updateFormData({ documents: updatedDocuments });
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-  };
-
-  const handleNext = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (documents.length === 0) {
-      newErrors.documents = 'Select a file';
-    }
-
-    const invalidDocs = documents.filter((doc) => !doc.validated);
-    if (invalidDocs.length > 0) {
-      newErrors.validation = 'Remove invalid files before continuing';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    onNext();
-  };
+  const allRequiredDocsValid = REQUIRED_DOCUMENTS.every(req => 
+    documents[req.id]?.status === 'valid'
+  );
 
   return (
     <div>
-      <h2 className="govuk-heading-l">Upload supporting documents</h2>
-
-      {/* Required Documents Info */}
-      <div style={{ 
-        backgroundColor: '#1d70b8',
-        color: 'white',
-        padding: '20px',
-        marginBottom: '30px'
-      }}>
-        <h3 className="govuk-heading-s" style={{ color: 'white', marginTop: 0 }}>
-          You must provide:
-        </h3>
-        <ul className="govuk-list govuk-list--bullet" style={{ marginBottom: 0 }}>
-          {requiredDocuments.map((doc) => (
-            <li key={doc}>{doc}</li>
-          ))}
-        </ul>
-      </div>
-
+      <h1 className="govuk-heading-l">Upload required documents</h1>
+      
       <div className="govuk-inset-text">
-        Files must be PDF, JPG or PNG format and smaller than 10MB
+        You must upload all required documents. Each document will be automatically validated to ensure it's the correct type and contains the necessary information.
       </div>
 
-      {/* Upload Area */}
-      <div className={`govuk-form-group ${errors.documents ? 'govuk-form-group--error' : ''}`}>
-        <label className="govuk-label govuk-label--s" htmlFor="file-upload">
-          Upload a file
-        </label>
-        {errors.documents && (
-          <p className="govuk-error-message">
-            <span className="govuk-visually-hidden">Error:</span> {errors.documents}
-          </p>
-        )}
-        {errors.validation && (
-          <p className="govuk-error-message">
-            <span className="govuk-visually-hidden">Error:</span> {errors.validation}
-          </p>
-        )}
-        <input
-          ref={fileInputRef}
-          id="file-upload"
-          type="file"
-          multiple
-          accept=".pdf,.jpg,.jpeg,.png"
-          onChange={handleFileSelect}
-          className="govuk-file-upload"
-        />
-      </div>
+      <div style={{ marginBottom: '30px' }}>
+        {REQUIRED_DOCUMENTS.map((req, index) => {
+          const doc = documents[req.id];
+          const isExpanded = expandedDoc === req.id;
 
-      {/* Validating Indicator */}
-      {isValidating && (
-        <div style={{ 
-          backgroundColor: '#1d70b8',
-          color: 'white',
-          padding: '15px',
-          marginBottom: '20px'
-        }}>
-          <p className="govuk-body" style={{ color: 'white', marginBottom: 0 }}>
-            Validating files...
-          </p>
-        </div>
-      )}
-
-      {/* Uploaded Documents List */}
-      {documents.length > 0 && (
-        <div style={{ marginBottom: '30px' }}>
-          <h3 className="govuk-heading-s">Uploaded files</h3>
-          <table className="govuk-table">
-            <thead className="govuk-table__head">
-              <tr className="govuk-table__row">
-                <th scope="col" className="govuk-table__header">File name</th>
-                <th scope="col" className="govuk-table__header">Size</th>
-                <th scope="col" className="govuk-table__header">Status</th>
-                <th scope="col" className="govuk-table__header">Action</th>
-              </tr>
-            </thead>
-            <tbody className="govuk-table__body">
-              {documents.map((doc) => (
-                <tr key={doc.id} className="govuk-table__row">
-                  <td className="govuk-table__cell">{doc.name}</td>
-                  <td className="govuk-table__cell">{formatFileSize(doc.size)}</td>
-                  <td className="govuk-table__cell">
-                    {doc.validated ? (
-                      <strong className="govuk-tag govuk-tag--green">Valid</strong>
-                    ) : (
-                      <>
-                        <strong className="govuk-tag govuk-tag--red">Invalid</strong>
-                        {doc.validationMessage && (
-                          <p className="govuk-error-message" style={{ marginTop: '5px', marginBottom: 0 }}>
-                            {doc.validationMessage}
-                          </p>
-                        )}
-                      </>
+          return (
+            <div 
+              key={req.id}
+              style={{
+                border: '1px solid #b1b4b6',
+                marginBottom: '20px',
+                backgroundColor: doc?.status === 'valid' ? '#f3f9f3' : doc?.status === 'invalid' ? '#fef7f7' : 'white'
+              }}
+            >
+              <div 
+                style={{
+                  padding: '15px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+                onClick={() => setExpandedDoc(isExpanded ? null : req.id)}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className="govuk-heading-s" style={{ marginBottom: 0 }}>
+                      {index + 1}. {req.name}
+                    </span>
+                    {doc?.status === 'valid' && (
+                      <strong className="govuk-tag govuk-tag--green">Validated</strong>
                     )}
-                  </td>
-                  <td className="govuk-table__cell">
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleRemoveDocument(doc.id);
-                      }}
-                      className="govuk-link"
-                    >
-                      Remove
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    {doc?.status === 'invalid' && (
+                      <strong className="govuk-tag govuk-tag--red">Invalid</strong>
+                    )}
+                    {doc?.status === 'uploading' && (
+                      <strong className="govuk-tag govuk-tag--blue">Uploading...</strong>
+                    )}
+                    {doc?.status === 'validating' && (
+                      <strong className="govuk-tag govuk-tag--yellow">Validating...</strong>
+                    )}
+                  </div>
+                  <p className="govuk-body-s" style={{ marginBottom: 0, color: '#505a5f' }}>
+                    {req.description}
+                  </p>
+                </div>
+                <span style={{ fontSize: '24px', color: '#1d70b8' }}>
+                  {isExpanded ? '−' : '+'}
+                </span>
+              </div>
+
+              {isExpanded && (
+                <div style={{ padding: '0 15px 15px 15px', borderTop: '1px solid #b1b4b6' }}>
+                  <div style={{ marginTop: '15px' }}>
+                    <h3 className="govuk-heading-s">What we're looking for:</h3>
+                    <ul className="govuk-list govuk-list--bullet">
+                      {req.exampleCharacteristics.documentStructure.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+
+                    <details className="govuk-details" style={{ marginTop: '15px' }}>
+                      <summary className="govuk-details__summary">
+                        <span className="govuk-details__summary-text">
+                          Technical requirements
+                        </span>
+                      </summary>
+                      <div className="govuk-details__text">
+                        <p className="govuk-body-s">
+                          <strong>Accepted formats:</strong> {req.acceptedFormats.join(', ')}
+                        </p>
+                        <p className="govuk-body-s">
+                          <strong>Maximum file size:</strong> {req.maxSize}MB
+                        </p>
+                        <p className="govuk-body-s">
+                          <strong>Expected keywords:</strong> {req.exampleCharacteristics.expectedKeywords.join(', ')}
+                        </p>
+                      </div>
+                    </details>
+
+                    {!doc && (
+                      <div className="govuk-form-group">
+                        <label className="govuk-label" htmlFor={`file-${req.id}`}>
+                          Upload {req.name}
+                        </label>
+                        <input
+                          className="govuk-file-upload"
+                          id={`file-${req.id}`}
+                          name={`file-${req.id}`}
+                          type="file"
+                          accept={req.acceptedFormats.join(',')}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(req.id, file);
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {doc && (
+                      <div style={{ marginTop: '15px' }}>
+                        <div style={{ 
+                          padding: '15px', 
+                          backgroundColor: '#f3f2f1',
+                          border: '1px solid #b1b4b6'
+                        }}>
+                          <p className="govuk-body-s" style={{ marginBottom: '5px' }}>
+                            <strong>File:</strong> {doc.file.name}
+                          </p>
+                          <p className="govuk-body-s" style={{ marginBottom: '5px' }}>
+                            <strong>Size:</strong> {(doc.file.size / 1024).toFixed(2)} KB
+                          </p>
+                          {doc.validationScore !== undefined && (
+                            <p className="govuk-body-s" style={{ marginBottom: '5px' }}>
+                              <strong>Validation score:</strong> {doc.validationScore}%
+                            </p>
+                          )}
+                          {doc.validationMessage && (
+                            <p className="govuk-body-s" style={{ 
+                              marginBottom: '10px',
+                              color: doc.status === 'valid' ? '#00703c' : '#d4351c',
+                              fontWeight: 600
+                            }}>
+                              {doc.validationMessage}
+                            </p>
+                          )}
+                          <button
+                            type="button"
+                            className="govuk-button govuk-button--secondary govuk-button--small"
+                            onClick={() => handleRemoveDocument(req.id)}
+                          >
+                            Remove and upload different file
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {!allRequiredDocsValid && (
+        <div className="govuk-warning-text">
+          <span className="govuk-warning-text__icon" aria-hidden="true">!</span>
+          <strong className="govuk-warning-text__text">
+            <span className="govuk-warning-text__assistive">Warning</span>
+            You must upload and validate all required documents before continuing
+          </strong>
         </div>
       )}
 
-      {/* Action Buttons */}
-      <button
-        type="button"
-        onClick={handleNext}
-        disabled={isValidating}
-        className="govuk-button"
-      >
-        Continue
-      </button>
-
-      <p className="govuk-body">
-        <a href="#" onClick={(e) => { e.preventDefault(); onBack(); }} className="govuk-link">
+      <div className="govuk-button-group">
+        <button
+          type="button"
+          className="govuk-button"
+          disabled={!allRequiredDocsValid}
+          onClick={onNext}
+        >
+          Continue
+        </button>
+        <button
+          type="button"
+          className="govuk-button govuk-button--secondary"
+          onClick={onBack}
+        >
           Back
-        </a>
-      </p>
+        </button>
+      </div>
     </div>
   );
 }
