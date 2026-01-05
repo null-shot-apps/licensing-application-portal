@@ -13,7 +13,7 @@ export default function PropertyDetailsStep({
   formData,
   updateFormData,
   onNext,
-  onCancel,
+  
 }: PropertyDetailsStepProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isValidatingAddress, setIsValidatingAddress] = useState(false);
@@ -299,7 +299,7 @@ export default function PropertyDetailsStep({
           Email address
         </label>
         <span className="govuk-hint">
-          We'll use this to send you updates about your application
+          We will use this to send you updates about your application
         </span>
         {errors.landlordEmail && (
           <p className="govuk-error-message">

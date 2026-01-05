@@ -127,14 +127,14 @@ const REQUIRED_DOCUMENTS: DocumentRequirement[] = [
 ];
 
 interface DocumentUploadStepProps {
-  data: any;
-  onUpdate: (data: any) => void;
+  formData: any;
+  updateFormData: (data: any) => void;
   onNext: () => void;
   onBack: () => void;
 }
 
-export default function DocumentUploadStep({ data, onUpdate, onNext, onBack }: DocumentUploadStepProps) {
-  const [documents, setDocuments] = useState<Record<string, UploadedDocument>>(data.documents || {});
+export default function DocumentUploadStep({ formData, updateFormData, onNext, onBack }: DocumentUploadStepProps) {
+  const [documents, setDocuments] = useState<Record<string, UploadedDocument>>(formData.documents || {});
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
 
   const validateDocument = async (docId: string, file: File): Promise<{ valid: boolean; message: string; score: number }> => {
@@ -253,12 +253,12 @@ export default function DocumentUploadStep({ data, onUpdate, onNext, onBack }: D
         ...prev,
         [docId]: {
           file,
-          status: validation.valid ? 'valid' : 'invalid',
+          status: (validation.valid ? 'valid' : 'invalid') as 'valid' | 'invalid',
           validationMessage: validation.message,
           validationScore: validation.score,
         }
       };
-      onUpdate({ documents: updated });
+      updateFormData({ documents: updated });
       return updated;
     });
   };
@@ -267,7 +267,7 @@ export default function DocumentUploadStep({ data, onUpdate, onNext, onBack }: D
     setDocuments(prev => {
       const updated = { ...prev };
       delete updated[docId];
-      onUpdate({ documents: updated });
+      updateFormData({ documents: updated });
       return updated;
     });
   };
@@ -281,7 +281,7 @@ export default function DocumentUploadStep({ data, onUpdate, onNext, onBack }: D
       <h1 className="govuk-heading-l">Upload required documents</h1>
       
       <div className="govuk-inset-text">
-        You must upload all required documents. Each document will be automatically validated to ensure it's the correct type and contains the necessary information.
+        You must upload all required documents. Each document will be automatically validated to ensure it is the correct type and contains the necessary information.
       </div>
 
       <div style={{ marginBottom: '30px' }}>
@@ -338,7 +338,7 @@ export default function DocumentUploadStep({ data, onUpdate, onNext, onBack }: D
               {isExpanded && (
                 <div style={{ padding: '0 15px 15px 15px', borderTop: '1px solid #b1b4b6' }}>
                   <div style={{ marginTop: '15px' }}>
-                    <h3 className="govuk-heading-s">What we're looking for:</h3>
+                    <h3 className="govuk-heading-s">What we are looking for:</h3>
                     <ul className="govuk-list govuk-list--bullet">
                       {req.exampleCharacteristics.documentStructure.map((item, i) => (
                         <li key={i}>{item}</li>
