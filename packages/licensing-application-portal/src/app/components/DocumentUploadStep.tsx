@@ -345,39 +345,39 @@ export default function DocumentUploadStep({ data, onUpdate, onNext, onBack }: D
                       ))}
                     </ul>
 
-                    <details className="govuk-details" style={{ marginTop: '15px' }}>
-                      <summary className="govuk-details__summary">
-                        <span className="govuk-details__summary-text">
-                          Technical requirements
-                        </span>
-                      </summary>
-                      <div className="govuk-details__text">
-                        <p className="govuk-body-s">
-                          <strong>Accepted formats:</strong> {req.acceptedFormats.join(', ')}
-                        </p>
-                        <p className="govuk-body-s">
-                          <strong>Maximum file size:</strong> {req.maxSize}MB
-                        </p>
-                        <p className="govuk-body-s">
-                          <strong>Expected keywords:</strong> {req.exampleCharacteristics.expectedKeywords.join(', ')}
-                        </p>
-                      </div>
-                    </details>
+                    <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#f3f2f1', border: '1px solid #b1b4b6' }}>
+                      <p className="govuk-body-s" style={{ marginBottom: '5px' }}>
+                        <strong>Accepted formats:</strong> {req.acceptedFormats.join(', ')}
+                      </p>
+                      <p className="govuk-body-s" style={{ marginBottom: '5px' }}>
+                        <strong>Maximum file size:</strong> {req.maxSize}MB
+                      </p>
+                      <p className="govuk-body-s" style={{ marginBottom: 0 }}>
+                        <strong>Expected keywords:</strong> {req.exampleCharacteristics.expectedKeywords.join(', ')}
+                      </p>
+                    </div>
 
                     {!doc && (
-                      <div className="govuk-form-group">
-                        <label className="govuk-label" htmlFor={`file-${req.id}`}>
+                      <div className="govuk-form-group" style={{ marginTop: '20px' }}>
+                        <label className="govuk-label govuk-label--s" htmlFor={`file-${req.id}`}>
                           Upload {req.name}
                         </label>
+                        <div id={`file-${req.id}-hint`} className="govuk-hint">
+                          Maximum file size: {req.maxSize}MB. Accepted formats: {req.acceptedFormats.join(', ')}
+                        </div>
                         <input
                           className="govuk-file-upload"
                           id={`file-${req.id}`}
                           name={`file-${req.id}`}
                           type="file"
                           accept={req.acceptedFormats.join(',')}
+                          aria-describedby={`file-${req.id}-hint`}
                           onChange={(e) => {
                             const file = e.target.files?.[0];
-                            if (file) handleFileUpload(req.id, file);
+                            if (file) {
+                              handleFileUpload(req.id, file);
+                              e.target.value = ''; // Reset input
+                            }
                           }}
                         />
                       </div>
@@ -458,4 +458,7 @@ export default function DocumentUploadStep({ data, onUpdate, onNext, onBack }: D
     </div>
   );
 }
+
+
+
 
